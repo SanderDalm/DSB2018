@@ -10,6 +10,9 @@ from PIL import Image
 import numpy as np
 import os
 
+from skimage.segmentation import find_boundaries
+from skimage.morphology import dilation
+
 
 def find_all_samples(path):
     all_samples = os.listdir(path)
@@ -31,6 +34,30 @@ def create_mask(path, width, height):
         os.mkdir(os.path.join(sample_path, 'mask'))
         mask_image = Image.fromarray(complete_mask.astype('uint8'), 'L')
         mask_image.save(os.path.join(sample_path, 'mask', '{}.png'.format(sample)))
+
+
+def create_border_mask(path, width, height):
+    samples = find_all_samples(path)
+    full_bounds = np.zeros((256,256))
+    for sample in samples:
+        sample_path = os.path.join(path, sample)
+        sample_path_masks = os.path.join(sample_path, 'masks')
+        masks = os.listdir(sample_path_masks)
+        complete_mask = np.zeros((width, height), dtype=int)
+        for i, mask in enumerate(masks):
+            with Image.open(os.path.join(sample_path_masks, mask)) as _mask:
+                _array = np.array(_mask.resize((width, height)))
+                _array = np.array(_array > 0, dtype=int) * (i + 1)
+                complete_mask = np.add(complete_mask, _array)
+        full_bounds = np.array(full_bounds, dtype=int)
+        bound_array = find_boundaries(label_img = full_bounds, connectivity = 1, mode='outer', background=0)
+        bound_array = np.array(bound_array, dtype=int)
+        bound_array = dilation(bound_array) * 255
+
+        # save image
+        os.mkdir(os.path.join(sample_path, 'border'))
+        mask_image = Image.fromarray(bound_array.astype('uint8'), 'L')
+        mask_image.save(os.path.join(sample_path, 'border', '{}.png'.format(sample)))
 
 
 def mean_iou(y_true, y_pred):
