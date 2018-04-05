@@ -131,7 +131,7 @@ class DataGenerator(keras.utils.Sequence):
                 x_arr = np.expand_dims(x_arr, axis=2)
                 X[i,] = x_arr
 
-            with Image.open(os.path.join(self.path, sample, 'mask', '{}.png'.format(sample))) as y_img:
+            with Image.open(os.path.join(self.path, sample, 'border', '{}.png'.format(sample))) as y_img:
                 y_img = y_img.resize(self.dim)
                 if zoom_o[i]:
                     y_img = y_img.crop((zoom_o[i][0], zoom_o[i][1], zoom_o[i][2], zoom_o[i][3]))
