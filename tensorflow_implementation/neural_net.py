@@ -76,7 +76,7 @@ class NeuralNet(object):
     def UNET(self, x, dropout_rate):
 
         # Convolutional layers
-        filter_size = 24
+        filter_size = 16
         conv1 = self.Conv2D(x, filter_size, 3, 1)
         conv1 = self.Conv2D(conv1, filter_size, 3, 1)
 
