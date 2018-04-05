@@ -14,6 +14,7 @@ from PIL import Image
 
 import numpy as np
 import os
+import shutil
 
 from skimage.segmentation import find_boundaries
 from skimage.morphology import dilation
@@ -43,7 +44,6 @@ def create_mask(path, width, height):
 
 def create_border_mask(path, width, height):
     samples = find_all_samples(path)
-    full_bounds = np.zeros((256,256))
     for sample in samples:
         sample_path = os.path.join(path, sample)
         sample_path_masks = os.path.join(sample_path, 'masks')
@@ -54,12 +54,15 @@ def create_border_mask(path, width, height):
                 _array = np.array(_mask.resize((width, height)))
                 _array = np.array(_array > 0, dtype=int) * (i + 1)
                 complete_mask = np.add(complete_mask, _array)
-        full_bounds = np.array(full_bounds, dtype=int)
+        full_bounds = np.array(complete_mask, dtype=int)
         bound_array = find_boundaries(label_img = full_bounds, connectivity = 1, mode='outer', background=0)
         bound_array = np.array(bound_array, dtype=int)
-        bound_array = dilation(bound_array) * 255
+        bound_array = dilation(bound_array)
+        bound_array = bound_array * 255
+        print(np.max(bound_array))
 
         # save image
+        shutil.rmtree(os.path.join(sample_path, 'border'))
         os.mkdir(os.path.join(sample_path, 'border'))
         mask_image = Image.fromarray(bound_array.astype('uint8'), 'L')
         mask_image.save(os.path.join(sample_path, 'border', '{}.png'.format(sample)))
@@ -131,6 +134,7 @@ def create_model(filter_size = 8, drop_rate=.4):
 
 
 if __name__ == '__main__':
+    # path_img = 'C:/Users/huubh/Documents/DSB2018_bak/img_no_masks'
     path_img = 'img'
     model_x2 = create_model()
     model_x2.summary()
@@ -144,5 +148,5 @@ if __name__ == '__main__':
     validation_generator = generator.DataGenerator(validation, path_img,
                                                  rotation=True, flipping=True, zoom=False, batch_size = 31, dim=(256,256))
     model_x2.fit_generator(generator=training_generator, validation_data=validation_generator, epochs=64)
-
-    model_x2.save('model_x5ss.h5')
+    # Save model
+    model_x2.save('model_b5.h5')
