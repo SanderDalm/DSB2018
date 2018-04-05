@@ -148,18 +148,19 @@ def create_model(filter_size = 8, drop_rate=.4):
 
 
 if __name__ == '__main__':
-    path_img = 'img'
-    model_x2 = create_model()
-    model_x2.summary()
-    labels = os.listdir(path_img)
-    training = labels[:608]
-    validation = labels[608:]
-    print(len(training))
-    print(len(validation))
-    training_generator = generator.DataGenerator(training, path_img,
-                                                 rotation=True, flipping=True, zoom=1.5, batch_size = 16, dim=(256,256))
-    validation_generator = generator.DataGenerator(validation, path_img,
-                                                 rotation=True, flipping=True, zoom=False, batch_size = 31, dim=(256,256))
-    model_x2.fit_generator(generator=training_generator, validation_data=validation_generator, epochs=64)
-
-    model_x2.save('model_x5ss.h5')
+    # path_img = 'img'
+    # model_x2 = create_model()
+    # model_x2.summary()
+    # labels = os.listdir(path_img)
+    # training = labels[:608]
+    # validation = labels[608:]
+    # print(len(training))
+    # print(len(validation))
+    # training_generator = generator.DataGenerator(training, path_img,
+    #                                              rotation=True, flipping=True, zoom=1.5, batch_size = 16, dim=(256,256))
+    # validation_generator = generator.DataGenerator(validation, path_img,
+    #                                              rotation=True, flipping=True, zoom=False, batch_size = 31, dim=(256,256))
+    # model_x2.fit_generator(generator=training_generator, validation_data=validation_generator, epochs=64)
+    #
+    # model_x2.save('model_x5ss.h5')
+    create_border_mask('C:/Users/huubh/Documents/DSB2018_bak/img', 256, 256)
