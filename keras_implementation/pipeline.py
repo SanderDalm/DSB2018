@@ -1,5 +1,7 @@
-from keras.layers import Input, Conv2D, MaxPooling2D, Dropout, Conv2DTranspose, concatenate, AveragePooling2D, Cropping2D
+from keras.layers import Input, Conv2D, MaxPooling2D, Dropout, Conv2DTranspose, concatenate
 from keras.models import Model
+from keras_implementation import generator
+
 import keras.backend as K
 import tensorflow as tf
 
@@ -7,7 +9,6 @@ from PIL import Image
 
 import numpy as np
 import os
-from keras_implementation import generator
 
 
 def find_all_samples(path):
@@ -73,8 +74,17 @@ def create_model(filter_size = 8, drop_rate=.4):
     uconv4 = Conv2D(filters=filter_size * 8, kernel_size=3, strides=1, activation='relu', padding='same')(uconc4)
     uconv4 = Conv2D(filters=filter_size * 8, kernel_size=3, strides=1, activation='relu', padding='same')(uconv4)
 
+    # # super soaker
+    sconv4 = Conv2D(filters=filter_size * 4, kernel_size=3, strides=1, activation='relu', padding='same')(pool3)
+    sconv4 = Conv2D(filters=filter_size * 4, kernel_size=3, strides=1, activation='relu', padding='same')(sconv4)
+    sdrop4 = Dropout(drop_rate)(sconv4)
+    suconv4 = Conv2DTranspose(filters=filter_size * 4, kernel_size=2, strides=2, activation='relu', padding='same')(sdrop4)
+    suconv4 = Conv2D(filters=filter_size * 4, kernel_size=3, strides=1, activation='relu', padding='same')(suconv4)
+    suconv4 = Conv2D(filters=filter_size * 4, kernel_size=3, strides=1, activation='relu', padding='same')(suconv4)
+    # #
+
     uconv3 = Conv2DTranspose(filters=filter_size * 4, kernel_size=2, strides=2, activation='relu', padding='same')(uconv4)
-    uconc3 = concatenate([conv3, uconv3], axis=3)
+    uconc3 = concatenate([conv3, uconv3,suconv4], axis=3)
     uconv3 = Conv2D(filters=filter_size * 4, kernel_size=3, strides=1, activation='relu', padding='same')(uconc3)
     uconv3 = Conv2D(filters=filter_size * 4, kernel_size=3, strides=1, activation='relu', padding='same')(uconv3)
 
@@ -83,8 +93,17 @@ def create_model(filter_size = 8, drop_rate=.4):
     uconv2 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(uconc2)
     uconv2 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(uconv2)
 
+    # # super soaker
+    sconv1 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(pool1)
+    sconv1 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(sconv1)
+    sdrop1 = Dropout(drop_rate)(sconv1)
+    suconv1 = Conv2DTranspose(filters=filter_size * 2, kernel_size=2, strides=2, activation='relu', padding='same')(sdrop1)
+    suconv1 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(suconv1)
+    suconv1 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(suconv1)
+    # #
+
     uconv1 = Conv2DTranspose(filters=filter_size, kernel_size=2, strides=2, activation='relu', padding='same')(uconv2)
-    uconc1 = concatenate([conv1, uconv1], axis=3)
+    uconc1 = concatenate([conv1, uconv1, suconv1], axis=3)
     uconv1 = Conv2D(filters=filter_size, kernel_size=3, strides=1, activation='relu', padding='same')(uconc1)
     uconv1 = Conv2D(filters=filter_size, kernel_size=3, strides=1, activation='relu', padding='same')(uconv1)
     uconv1 = Conv2D(filters=2, kernel_size=3, strides=1, activation='relu', padding='same')(uconv1)
@@ -99,6 +118,7 @@ def create_model(filter_size = 8, drop_rate=.4):
 if __name__ == '__main__':
     path_img = 'img'
     model_x2 = create_model()
+    model_x2.summary()
     labels = os.listdir(path_img)
     training = labels[:608]
     validation = labels[608:]
