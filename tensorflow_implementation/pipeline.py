@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage.morphology import label
 from skimage.transform import resize
+from skimage.morphology import remove_small_objects, remove_small_holes
 import pandas as pd
 
 from tensorflow_implementation.neural_net import NeuralNet
@@ -16,35 +17,35 @@ from tensorflow_implementation.batch_generator import BatchGenerator
 ###########################
 
 SIZE = 256
+BOUNDRY_MODE = True
+if BOUNDRY_MODE:
+    MODEL_PATH = 'tensorflow_implementation/boundry_models/neural_net'
+else:
+    MODEL_PATH = 'tensorflow_implementation/models/neural_net'
 
 batchgen = BatchGenerator(height=SIZE,
                           width=SIZE,
                           channels=1,
                           data_dir_train='stage1_train/',
                           data_dir_test='stage1_test/',
+                          boundry_mode=BOUNDRY_MODE,
                           submission_run=False)
 
 x_train, y_train = batchgen.x_train, batchgen.y_train
+
 x_val = batchgen.x_val
 x_test, test_ids, sizes_test = batchgen.x_test
 
-#plt.imshow(x_train[5].reshape([SIZE, SIZE]), cmap='gray')
-#x, y = batchgen.augment(x_train[5].reshape([SIZE, SIZE]), y_train[5].reshape([SIZE, SIZE]))
-#plt.imshow(x, cmap='gray')
-print(x_train.shape)
-print(x_val.shape)
-print(x_test.shape)
-
 model = NeuralNet(SIZE, SIZE, 1, batchgen)
 
-#model.load_weights('/home/sander/kaggle/models/neural_net2500.ckpt')
+#model.load_weights(os.path.join(MODEL_PATH, 'neural_net3500.ckpt'))
 
-loss_list, val_loss_list, val_iou_list = model.train(num_steps=4000,
-             batch_size=64,
+loss_list, val_loss_list, val_iou_list = model.train(num_steps=12000,
+             batch_size=32,
              dropout_rate=0,
              lr=.0001,
              decay=1,
-             checkpoint='models/neural_net')
+             checkpoint=MODEL_PATH)
 
 plt.plot(loss_list)
 plt.plot(val_loss_list)
@@ -58,7 +59,7 @@ plt.show()
 
 x_val, y_val = batchgen.generate_val_data()
 val_preds = model.predict(x_val)
-index = 1
+index = 2
 
 plt.imshow(x_val[index].reshape(SIZE, SIZE), cmap='gray')
 plt.imshow(y_val[index].reshape(SIZE, SIZE), cmap='gray')
@@ -115,6 +116,15 @@ for i in range(len(preds)):
     preds_test_upsampled.append(resize(np.squeeze(preds[i]),
                                        (sizes_test[i][0], sizes_test[i][1]),
                                        mode='constant', preserve_range=True))
+
+
+##########
+test = preds_test_upsampled[0]
+test = remove_small_holes(test)
+test = remove_small_objects(test)
+plt.imshow(test, cmap='gray')
+##########
+
 
 new_test_ids = []
 rles = []

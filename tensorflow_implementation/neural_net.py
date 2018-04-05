@@ -15,7 +15,7 @@ def IOU(x, y):
 
 class NeuralNet(object):
 
-    def __init__(self, height, width, channels, mirror, batchgen):
+    def __init__(self, height, width, channels, batchgen):
 
         self.batchgen = batchgen
 
@@ -23,7 +23,7 @@ class NeuralNet(object):
 
         self.session = tf.Session()  # config=tf.ConfigProto(log_device_placement=True)
 
-        self.x = tf.placeholder(dtype=tf.float32, shape=[None, height+mirror, width+mirror, channels], name='input')
+        self.x = tf.placeholder(dtype=tf.float32, shape=[None, height, width, channels], name='input')
         self.x = tf.map_fn(lambda img: tf.image.per_image_standardization(img), self.x)
 
         self.dropout_rate = tf.placeholder(tf.float32)
