@@ -1,9 +1,14 @@
 from keras.layers import Input, Conv2D, MaxPooling2D, Dropout, Conv2DTranspose, concatenate
 from keras.models import Model
-from keras_implementation import generator
+try:
+    from keras_implementation import generator
+except:
+    import generator
 
 import keras.backend as K
 import tensorflow as tf
+
+from skimage.segmentation import mark_boundaries
 
 from PIL import Image
 
@@ -121,12 +126,12 @@ def create_model(filter_size = 8, drop_rate=.4):
     uconv2 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(uconv2)
 
     # # super soaker
-    sconv1 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(pool1)
-    sconv1 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(sconv1)
+    sconv1 = Conv2D(filters=filter_size * 1, kernel_size=3, strides=1, activation='relu', padding='same')(pool1)
+    sconv1 = Conv2D(filters=filter_size * 1, kernel_size=3, strides=1, activation='relu', padding='same')(sconv1)
     sdrop1 = Dropout(drop_rate)(sconv1)
-    suconv1 = Conv2DTranspose(filters=filter_size * 2, kernel_size=2, strides=2, activation='relu', padding='same')(sdrop1)
-    suconv1 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(suconv1)
-    suconv1 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(suconv1)
+    suconv1 = Conv2DTranspose(filters=filter_size * 1, kernel_size=2, strides=2, activation='relu', padding='same')(sdrop1)
+    suconv1 = Conv2D(filters=filter_size * 1, kernel_size=3, strides=1, activation='relu', padding='same')(suconv1)
+    suconv1 = Conv2D(filters=filter_size * 1, kernel_size=3, strides=1, activation='relu', padding='same')(suconv1)
     # #
 
     uconv1 = Conv2DTranspose(filters=filter_size, kernel_size=2, strides=2, activation='relu', padding='same')(uconv2)
@@ -138,7 +143,7 @@ def create_model(filter_size = 8, drop_rate=.4):
     pred = Conv2D(filters=1, kernel_size=1, strides=1, padding='same', activation='sigmoid')(uconv1)
 
     model = Model(inputs=img_input, outputs=pred)
-    model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['acc', mean_iou])
+    model.compile(loss='binary_crossentropy', optimizer='nadam', metrics=[mean_iou])
     return model
 
 
@@ -155,6 +160,6 @@ if __name__ == '__main__':
                                                  rotation=True, flipping=True, zoom=1.5, batch_size = 16, dim=(256,256))
     validation_generator = generator.DataGenerator(validation, path_img,
                                                  rotation=True, flipping=True, zoom=False, batch_size = 31, dim=(256,256))
-    model_x2.fit_generator(generator=training_generator, validation_data=validation_generator, epochs=128)
+    model_x2.fit_generator(generator=training_generator, validation_data=validation_generator, epochs=64)
 
-    model_x2.save('model_x5.h5')
+    model_x2.save('model_x5ss.h5')
