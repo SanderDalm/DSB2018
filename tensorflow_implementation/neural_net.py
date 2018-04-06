@@ -200,4 +200,3 @@ class NeuralNet(object):
         print('Mean val IOU: {}'.format(mean_iou))
 
         return mean_iou
-
