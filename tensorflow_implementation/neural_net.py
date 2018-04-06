@@ -15,7 +15,7 @@ def IOU(x, y):
 
 class NeuralNet(object):
 
-    def __init__(self, height, width, channels, mirror, batchgen):
+    def __init__(self, height, width, channels, batchgen):
 
         self.batchgen = batchgen
 
@@ -23,7 +23,7 @@ class NeuralNet(object):
 
         self.session = tf.Session()  # config=tf.ConfigProto(log_device_placement=True)
 
-        self.x = tf.placeholder(dtype=tf.float32, shape=[None, height+mirror, width+mirror, channels], name='input')
+        self.x = tf.placeholder(dtype=tf.float32, shape=[None, height, width, channels], name='input')
         self.x = tf.map_fn(lambda img: tf.image.per_image_standardization(img), self.x)
 
         self.dropout_rate = tf.placeholder(tf.float32)
@@ -76,7 +76,7 @@ class NeuralNet(object):
     def UNET(self, x, dropout_rate):
 
         # Convolutional layers
-        filter_size = 24
+        filter_size = 16
         conv1 = self.Conv2D(x, filter_size, 3, 1)
         conv1 = self.Conv2D(conv1, filter_size, 3, 1)
 
@@ -200,4 +200,3 @@ class NeuralNet(object):
         print('Mean val IOU: {}'.format(mean_iou))
 
         return mean_iou
-

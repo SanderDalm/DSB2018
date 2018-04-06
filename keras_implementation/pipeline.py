@@ -1,14 +1,23 @@
 from keras.layers import Input, Conv2D, MaxPooling2D, Dropout, Conv2DTranspose, concatenate
 from keras.models import Model
-from keras import optimizers
-from keras.utils import Sequence
-from keras.preprocessing.image import ImageDataGenerator
+try:
+    from keras_implementation import generator
+except:
+    import generator
 
-from PIL import Image, ImageOps
+import keras.backend as K
+import tensorflow as tf
+
+from skimage.segmentation import mark_boundaries
+
+from PIL import Image
 
 import numpy as np
 import os
-import generator
+import shutil
+
+from skimage.segmentation import find_boundaries
+from skimage.morphology import dilation
 
 
 def find_all_samples(path):
@@ -16,54 +25,65 @@ def find_all_samples(path):
     return all_samples
 
 
-# def create_mask(path, width, height):
-#     samples = find_all_samples(path)
-#     for sample in samples:
-#         sample_path = os.path.join(path, sample)
-#         sample_path_masks = os.path.join(sample_path, 'masks')
-#         masks = os.listdir(sample_path_masks)
-#         complete_mask = np.zeros((width, height), dtype=int)
-#         for mask in masks:
-#             with Image.open(os.path.join(sample_path_masks, mask)) as _mask:
-#                 _mask = _mask.resize((width, height))
-#                 _mask = np.array(_mask)
-#                 complete_mask = np.maximum(complete_mask, _mask)
-#         os.mkdir(os.path.join(sample_path, 'mask'))
-#         mask_image = Image.fromarray(complete_mask.astype('uint8'), 'L')
-#         mask_image.save(os.path.join(sample_path, 'mask', '{}.png'.format(sample)))
+def create_mask(path, width, height):
+    samples = find_all_samples(path)
+    for sample in samples:
+        sample_path = os.path.join(path, sample)
+        sample_path_masks = os.path.join(sample_path, 'masks')
+        masks = os.listdir(sample_path_masks)
+        complete_mask = np.zeros((width, height), dtype=int)
+        for mask in masks:
+            with Image.open(os.path.join(sample_path_masks, mask)) as _mask:
+                _mask = _mask.resize((width, height))
+                _mask = np.array(_mask)
+                complete_mask = np.maximum(complete_mask, _mask)
+        os.mkdir(os.path.join(sample_path, 'mask'))
+        mask_image = Image.fromarray(complete_mask.astype('uint8'), 'L')
+        mask_image.save(os.path.join(sample_path, 'mask', '{}.png'.format(sample)))
 
 
-def sample_x_y(path, x_shape=(256,256), y_shape=(256,256), size=670):
-    samples = os.listdir(path)
-    # TODO: Shuffle
-    X = np.empty((size, *x_shape, 1))
-    Y = np.empty((size, *y_shape, 1))
+def create_border_mask(path, width, height):
+    samples = find_all_samples(path)
+    for sample in samples:
+        sample_path = os.path.join(path, sample)
+        sample_path_masks = os.path.join(sample_path, 'masks')
+        masks = os.listdir(sample_path_masks)
+        complete_mask = np.zeros((width, height), dtype=int)
+        for i, mask in enumerate(masks):
+            with Image.open(os.path.join(sample_path_masks, mask)) as _mask:
+                _array = np.array(_mask.resize((width, height)))
+                _array = np.array(_array > 0, dtype=int) * (i + 1)
+                complete_mask = np.add(complete_mask, _array)
+        full_bounds = np.array(complete_mask, dtype=int)
+        bound_array = find_boundaries(label_img = full_bounds, connectivity = 1, mode='outer', background=0)
+        bound_array = np.array(bound_array, dtype=int)
+        bound_array = dilation(bound_array)
+        bound_array = bound_array * 255
+        print(np.max(bound_array))
 
-    for i in range(size):
-        with Image.open(os.path.join(path, samples[i], 'images', '{}.png'.format(samples[i]))) as x_img:
-            x_img = x_img.resize(x_shape)
-            x_img = x_img.convert(mode='L')
-            x_img = ImageOps.autocontrast(x_img)
-            x_arr = np.array(x_img) /255
-            x_arr = np.expand_dims(x_arr,axis=2)
-            X[i,] = x_arr
-        with Image.open(os.path.join(path, samples[i], 'mask', '{}.png'.format(samples[i]))) as y_img:
-            y_img = y_img.resize(y_shape)
-            y_arr = np.array(y_img) /255
-            y_arr = np.expand_dims(y_arr,2)
-            Y[i,] = y_arr
-    return X, Y
+        # save image
+        shutil.rmtree(os.path.join(sample_path, 'border'))
+        os.mkdir(os.path.join(sample_path, 'border'))
+        mask_image = Image.fromarray(bound_array.astype('uint8'), 'L')
+        mask_image.save(os.path.join(sample_path, 'border', '{}.png'.format(sample)))
 
 
-def create_model():
-    filter_size = 8
-    drop_rate = .5
+def mean_iou(y_true, y_pred):
+    y_true = K.round(y_true)
+    print(y_true)
+    y_pred = K.round(y_pred)
+    score, up_opt = tf.metrics.mean_iou(y_true, y_pred, 2)
+    K.get_session().run(tf.local_variables_initializer())
+    with tf.control_dependencies([up_opt]):
+       score = tf.identity(score)
+    return score
 
-    # img_input = Input(shape=(256,256,1))
-    img_input = Input(shape=(260,260,1))
 
-    conv1 = Conv2D(filters=filter_size, kernel_size=3, strides=1, activation='relu', padding='valid')(img_input)
-    conv1 = Conv2D(filters=filter_size, kernel_size=3, strides=1, activation='relu', padding='valid')(conv1)
+def create_model(filter_size = 8, drop_rate=.4):
+    img_input = Input(shape=(256,256,1))
+
+    conv1 = Conv2D(filters=filter_size, kernel_size=3, strides=1, activation='relu', padding='same')(img_input)
+    conv1 = Conv2D(filters=filter_size, kernel_size=3, strides=1, activation='relu', padding='same')(conv1)
     pool1 = MaxPooling2D(2, 2)(conv1)
 
     conv2 = Conv2D(filters=filter_size * 2, kernel_size=3, strides=1, activation='relu', padding='same')(pool1)
@@ -108,14 +128,25 @@ def create_model():
     pred = Conv2D(filters=1, kernel_size=1, strides=1, padding='same', activation='sigmoid')(uconv1)
 
     model = Model(inputs=img_input, outputs=pred)
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['acc'])
+    model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['acc', mean_iou])
     return model
 
-if __name__ == '__main__':
-    # XX, YY = sample_x_y('img')
-    model_x = create_model()
-    # model_x.fit(XX,YY, epochs=2, batch_size=10)
-    training = os.listdir('img')[0:64]
-    training_generator = keras_generator.DataGenerator(training, 'img', rotation=True, flipping=True, mirror_edges=4)
-    model_x.fit_generator(generator=training_generator, epochs=4)
 
+
+if __name__ == '__main__':
+    # path_img = 'C:/Users/huubh/Documents/DSB2018_bak/img_no_masks'
+    path_img = 'img'
+    model_x2 = create_model()
+    model_x2.summary()
+    labels = os.listdir(path_img)
+    training = labels[:608]
+    validation = labels[608:]
+    print(len(training))
+    print(len(validation))
+    training_generator = generator.DataGenerator(training, path_img,
+                                                 rotation=True, flipping=True, zoom=1.5, batch_size = 16, dim=(256,256))
+    validation_generator = generator.DataGenerator(validation, path_img,
+                                                 rotation=True, flipping=True, zoom=False, batch_size = 31, dim=(256,256))
+    model_x2.fit_generator(generator=training_generator, validation_data=validation_generator, epochs=64)
+    # Save model
+    model_x2.save('model_b5.h5')
