@@ -28,9 +28,12 @@ x_train, y_train = batchgen.x_train, batchgen.y_train
 x_val = batchgen.x_val
 x_test, test_ids, sizes_test = batchgen.x_test
 
-#plt.imshow(x_train[5].reshape([SIZE, SIZE]), cmap='gray')
+x = x_train[0].reshape([SIZE, SIZE])
+
+x,y=batchgen.generate_batch(32)
+x1 = x[0]
 #x, y = batchgen.augment(x_train[5].reshape([SIZE, SIZE]), y_train[5].reshape([SIZE, SIZE]))
-#plt.imshow(x, cmap='gray')
+plt.imshow(x, cmap='gray')
 print(x_train.shape)
 print(x_val.shape)
 print(x_test.shape)
@@ -39,11 +42,11 @@ model = NeuralNet(SIZE, SIZE, 1, batchgen)
 
 #model.load_weights('/home/sander/kaggle/models/neural_net1500.ckpt')
 
-loss_list, val_loss_list, val_iou_list = model.train(num_steps=4000,
-             batch_size=64,
+loss_list, val_loss_list, val_iou_list = model.train(num_steps=12000,
+             batch_size=8,
              dropout_rate=0,
              lr=.0001,
-             decay=.999,
+             decay=1,
              checkpoint='models/neural_net')
 
 plt.plot(loss_list)

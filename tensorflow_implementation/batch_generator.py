@@ -145,6 +145,8 @@ class BatchGenerator(object):
             x = np.flip(x, axis=0)
             y = np.flip(y, axis=0)
 
+        x += np.random.normal(0, .3, [x.shape[0], x.shape[1], 1])
+
         return x, y
 
 
