@@ -57,10 +57,7 @@ class BatchGenerator(object):
                 mask = np.maximum(mask, mask_)
 
                 # Add boundry
-                #np.save('mask_',mask_)
                 mask_boundaries_ = find_boundaries(mask_, mode='outer').astype(np.uint8)
-                #np.save('boundry', mask_boundaries_)
-                #assert False
                 mask_boundaries = np.add(mask_boundaries, mask_boundaries_)
 
             labels[n] = mask

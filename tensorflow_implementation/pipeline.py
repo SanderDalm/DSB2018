@@ -29,6 +29,7 @@ x_train, y_train, boundaries_train = batchgen.x_train, batchgen.y_train, batchge
 x_val = batchgen.x_val
 x_test, test_ids, sizes_test = batchgen.x_test
 
+
 #x,y,b=batchgen.generate_batch(32)
 #plt.imshow(x[15].reshape(SIZE, SIZE), cmap='gray')
 
@@ -44,9 +45,7 @@ loss_list, val_loss_list, val_iou_list = model.train(num_steps=2000,
              decay=.9998,
              checkpoint='/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/')
 
-# Save final weights
-model.saver.save(model.session, '/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/final.ckpt')
-# Load
+# Load weights
 model.load_weights('/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/final.ckpt')
 
 plt.plot(loss_list)
