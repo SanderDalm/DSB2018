@@ -4,7 +4,7 @@ os.chdir('/home/sander/datascience/DSB2018/DSB2018')
 
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage.morphology import label
+from skimage.morphology import label, opening, remove_small_holes
 from skimage.transform import resize
 import pandas as pd
 
@@ -18,7 +18,6 @@ from tensorflow_implementation.batch_generator import BatchGenerator
 
 SIZE = 256
 
-
 batchgen = BatchGenerator(height=SIZE,
                           width=SIZE,
                           channels=1,
@@ -26,26 +25,29 @@ batchgen = BatchGenerator(height=SIZE,
                           data_dir_test='stage1_test/',
                           submission_run=False)
 
-x_train, y_train = batchgen.x_train, batchgen.y_train
+x_train, y_train, boundaries_train = batchgen.x_train, batchgen.y_train, batchgen.boundaries_train
 x_val = batchgen.x_val
 x_test, test_ids, sizes_test = batchgen.x_test
 
+#x,y,b=batchgen.generate_batch(32)
+#plt.imshow(x[15].reshape(SIZE, SIZE), cmap='gray')
 
 print(x_train.shape)
 print(x_val.shape)
 print(x_test.shape)
 
-
 model = NeuralNet(SIZE, SIZE, 1, batchgen)
-
-#model.load_weights('/home/sander/kaggle/models/neural_net1500.ckpt')
-
-loss_list, val_loss_list, val_iou_list = model.train(num_steps=12000,
-             batch_size=8,
+loss_list, val_loss_list, val_iou_list = model.train(num_steps=2000,
+             batch_size=16,
              dropout_rate=0,
-             lr=.0001,
-             decay=1,
-             checkpoint='models/neural_net')
+             lr=.001,
+             decay=.9998,
+             checkpoint='/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/')
+
+# Save final weights
+model.saver.save(model.session, '/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/final.ckpt')
+# Load
+model.load_weights('/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/final.ckpt')
 
 plt.plot(loss_list)
 plt.plot(val_loss_list)
@@ -59,7 +61,11 @@ plt.show()
 
 x_val, y_val = batchgen.generate_val_data()
 val_preds = model.predict(x_val)
-index = 1
+index = 3
+
+test=val_preds[index]
+test=test.flatten()
+plt.hist(test)
 
 plt.imshow(x_val[index].reshape(SIZE, SIZE), cmap='gray')
 plt.imshow(y_val[index].reshape(SIZE, SIZE), cmap='gray')
@@ -86,11 +92,57 @@ IOU_array = np.array(IOU_list)
 
 print(np.mean(IOU_array))
 
+################
+# 8x voorspellen
+################
+
+def get_preds(x):
+    def get_rotated_predictions(img, flip_back=False):
+
+        preds = []
+        for rotation in [0, 1, 2, 3]:
+
+            rotated_img = np.rot90(img, rotation)
+            pred_rotated = model.predict(rotated_img.reshape(1, SIZE, SIZE, 1))
+            pred_rotated_reversed = np.rot90(pred_rotated.reshape(SIZE, SIZE), -rotation)
+            if flip_back:
+                pred_rotated_reversed = np.flip(pred_rotated_reversed, axis=1)
+            pred_rotated_reversed = pred_rotated_reversed.reshape(SIZE, SIZE, 1)
+            preds.append(pred_rotated_reversed)
+        return preds
+
+    preds = []
+
+    for sample in x:
+
+        preds_for_sample = []
+
+        img = sample.reshape(SIZE, SIZE)
+        preds_for_sample.extend(get_rotated_predictions(img))
+
+        img_mirr = np.flip(img, axis=1)
+        preds_for_sample.extend(get_rotated_predictions(img_mirr, flip_back=True))
+
+        total_pred_for_sample = np.concatenate(preds_for_sample, axis=2)
+        pred = np.mean(total_pred_for_sample, axis=2)
+        preds.append(pred)
+    return preds
+
+    #plt.imshow(x_test[0].reshape(SIZE, SIZE), cmap='gray')
+    #plt.imshow(preds[0].reshape(SIZE, SIZE), cmap='gray')
+
+preds = get_preds(x_test)
+
+
 ###########################
 # Submission
 ###########################
 
 # Run-length encoding stolen from https://www.kaggle.com/rakhlin/fast-run-length-encoding-python
+
+preds = [opening(x) for x in preds]
+preds = [remove_small_holes(np.round(x).astype(np.uint8)) for x in preds]
+
 def rle_encoding(x):
 
     dots = np.where(x.T.flatten() == 1)[0]
@@ -107,7 +159,7 @@ def prob_to_rles(x, cutoff=0.5):
     for i in range(1, lab_img.max() + 1):
         yield rle_encoding(lab_img == i)
 
-preds = model.predict(x_test)
+
 preds_test_upsampled = []
 for i in range(len(preds)):
     preds_test_upsampled.append(resize(np.squeeze(preds[i]),
@@ -129,6 +181,6 @@ sub['EncodedPixels'] = pd.Series(rles).apply(lambda x: ' '.join(str(y) for y in 
 sub.to_csv('sub.csv', index=False)
 
 
-index = 1
-plt.imshow(resize(np.squeeze(preds[index]), (sizes_test[index][0], sizes_test[index][1]), mode='constant', preserve_range=True))
-plt.imshow(preds_test_upsampled[index], cmap='gray')
+#index = 1
+#plt.imshow(resize(np.squeeze(preds[index]), (sizes_test[index][0], sizes_test[index][1]), mode='constant', preserve_range=True))
+#plt.imshow(preds_test_upsampled[index], cmap='gray')

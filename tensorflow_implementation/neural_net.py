@@ -31,11 +31,14 @@ class NeuralNet(object):
         self.prediction = self.UNET(self.x, self.dropout_rate)
 
         self.label = tf.placeholder(dtype=tf.float32, shape=[None, height, width, 1])
+        self.boundaries = tf.placeholder(dtype=tf.float32, shape=[None, height, width, 1])
+        self.label = tf.subtract(self.label, tf.maximum(self.boundaries, 1))
 
-        #self.loss = tf.reduce_mean(tf.losses.mean_squared_error(self.label, self.prediction))
-        self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+        self.loss = tf.reduce_mean(tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(
                                     labels=self.label,
-                                    logits=self.prediction))
+                                    logits=self.prediction),
+                                    tf.add(self.boundaries, 1)))
+
 
         self.prediction = tf.nn.sigmoid(self.prediction)
         self.lr = tf.placeholder(tf.float32)
@@ -141,10 +144,11 @@ class NeuralNet(object):
 
         for step in range(num_steps):
 
-            x_batch, y_batch = self.batchgen.generate_batch(batch_size)
+            x_batch, y_batch, boundary_batch = self.batchgen.generate_batch(batch_size)
 
             feed_dict = {self.x: x_batch,
                          self.label: y_batch,
+                         self.boundaries : boundary_batch,
                          self.dropout_rate: dropout_rate,
                          self.lr: lr
                          }
@@ -154,8 +158,8 @@ class NeuralNet(object):
 
             if step % 100 == 0:
 
-                x_batch, y_batch = self.batchgen.generate_val_data()
-                feed_dict = {self.x: x_batch, self.label: y_batch, self.dropout_rate: 0}
+                x_batch, y_batch, boundaries_batch = self.batchgen.generate_val_data()
+                feed_dict = {self.x: x_batch, self.label: y_batch, self.boundaries: boundaries_batch, self.dropout_rate: 0}
                 val_loss = self.session.run([self.loss], feed_dict=feed_dict)
                 val_loss_list.append(val_loss)
                 loss_list.append(loss_)
@@ -166,9 +170,9 @@ class NeuralNet(object):
                 print('')
                 val_iou_list.append(self.validate())
 
-                if step > 0 and step+1 % 500 == 0:
-                    self.saver.save(self.session, checkpoint + str(step) + '.ckpt')
-                    print('Saved to {}'.format(checkpoint + str(step) + '.ckpt'))
+            if step % 1000 == 0:
+                self.saver.save(self.session, checkpoint + str(step) + '.ckpt')
+                print('Saved to {}'.format(checkpoint + str(step) + '.ckpt'))
 
         return loss_list, val_loss_list, val_iou_list
 
@@ -187,7 +191,7 @@ class NeuralNet(object):
 
     def validate(self):
 
-        x_val, y_val = self.batchgen.generate_val_data()
+        x_val, y_val, _ = self.batchgen.generate_val_data()
         preds = self.predict(x_val)
 
         IOU_list = []
