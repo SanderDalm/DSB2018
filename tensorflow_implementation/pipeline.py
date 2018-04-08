@@ -41,8 +41,8 @@ model = NeuralNet(SIZE, SIZE, 1, batchgen)
 loss_list, val_loss_list, val_iou_list = model.train(num_steps=2000,
              batch_size=16,
              dropout_rate=0,
-             lr=.001,
-             decay=.9998,
+             lr=.0001, #.001
+             decay=1,#.9998,
              checkpoint='/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/')
 
 # Load weights
@@ -58,9 +58,9 @@ plt.show()
 # Validatie
 ###########################
 
-x_val, y_val = batchgen.generate_val_data()
+x_val, y_val, b_val = batchgen.generate_val_data()
 val_preds = model.predict(x_val)
-index = 3
+index = 50
 
 test=val_preds[index]
 test=test.flatten()
@@ -68,6 +68,7 @@ plt.hist(test)
 
 plt.imshow(x_val[index].reshape(SIZE, SIZE), cmap='gray')
 plt.imshow(y_val[index].reshape(SIZE, SIZE), cmap='gray')
+plt.imshow(b_val[index].reshape(SIZE, SIZE), cmap='gray')
 plt.imshow(val_preds[index].reshape(SIZE, SIZE), cmap='gray')
 plt.imshow(np.round(val_preds[index].reshape(SIZE, SIZE)), cmap='gray')
 

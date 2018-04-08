@@ -39,6 +39,10 @@ class NeuralNet(object):
                                     logits=self.prediction),
                                     tf.add(self.boundaries, 1)))
 
+        #self.loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+        #                            labels=self.label,
+        #                           logits=self.prediction))
+
 
         self.prediction = tf.nn.sigmoid(self.prediction)
         self.lr = tf.placeholder(tf.float32)
@@ -146,7 +150,8 @@ class NeuralNet(object):
 
             x_batch, y_batch, boundary_batch = self.batchgen.generate_batch(batch_size)
 
-            feed_dict = {self.x: x_batch,
+            feed_dict = {
+                         self.x: x_batch,
                          self.label: y_batch,
                          self.boundaries : boundary_batch,
                          self.dropout_rate: dropout_rate,
@@ -159,7 +164,12 @@ class NeuralNet(object):
             if step % 100 == 0:
 
                 x_batch, y_batch, boundaries_batch = self.batchgen.generate_val_data()
-                feed_dict = {self.x: x_batch, self.label: y_batch, self.boundaries: boundaries_batch, self.dropout_rate: 0}
+                feed_dict = {
+                             self.x: x_batch,
+                             self.label: y_batch,
+                             self.boundaries: boundaries_batch,
+                             self.dropout_rate: 0
+                             }
                 val_loss = self.session.run([self.loss], feed_dict=feed_dict)
                 val_loss_list.append(val_loss)
                 loss_list.append(loss_)
