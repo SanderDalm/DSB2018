@@ -32,7 +32,7 @@ class NeuralNet(object):
 
         self.label = tf.placeholder(dtype=tf.float32, shape=[None, height, width, 1])
         self.boundaries = tf.placeholder(dtype=tf.float32, shape=[None, height, width, 1])
-        self.label = tf.subtract(self.label, tf.maximum(self.boundaries, 1))
+        self.label = tf.subtract(self.label, tf.minimum(self.boundaries, 1))
 
         self.loss = tf.reduce_mean(tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(
                                     labels=self.label,
