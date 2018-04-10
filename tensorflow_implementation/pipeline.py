@@ -38,11 +38,11 @@ print(x_val.shape)
 print(x_test.shape)
 
 model = NeuralNet(SIZE, SIZE, 1, batchgen)
-loss_list, val_loss_list, val_iou_list = model.train(num_steps=16000,
+loss_list, val_loss_list, val_iou_list = model.train(num_steps=32000,
              batch_size=16,
              dropout_rate=0,
              lr=.001,
-             decay=.9998,
+             decay=.9999,
              checkpoint='/home/sander/kaggle/tensorflow_implementation/models/')
 
 # Load weights
