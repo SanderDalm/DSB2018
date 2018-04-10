@@ -51,13 +51,13 @@ class BatchGenerator(object):
                 mask_ = imread(path + '/masks/' + mask_file)
                 mask_ = np.expand_dims(resize(mask_, (self.height, self.width), mode='constant',
                                               preserve_range=True), axis=-1)
-                mask_ = (mask_/255).astype(np.uint8)
+                mask_copy = (mask_/255).astype(np.uint8)
 
                 # Add mask
                 mask = np.maximum(mask, mask_)
 
                 # Add boundry
-                mask_boundaries_ = find_boundaries(mask_, mode='outer').astype(np.uint8)
+                mask_boundaries_ = find_boundaries(mask_copy, mode='outer').astype(np.uint8)
                 mask_boundaries = np.add(mask_boundaries, mask_boundaries_)
 
             labels[n] = mask

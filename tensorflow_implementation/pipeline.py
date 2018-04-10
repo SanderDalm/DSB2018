@@ -1,5 +1,5 @@
-import os
-os.chdir('/home/sander/datascience/DSB2018/DSB2018')
+#import os
+#os.chdir('/home/sander/datascience/DSB2018/DSB2018')
 
 
 import numpy as np
@@ -23,7 +23,7 @@ batchgen = BatchGenerator(height=SIZE,
                           channels=1,
                           data_dir_train='stage1_train/',
                           data_dir_test='stage1_test/',
-                          submission_run=False)
+                          submission_run=True)
 
 x_train, y_train, boundaries_train = batchgen.x_train, batchgen.y_train, batchgen.boundaries_train
 x_val = batchgen.x_val
@@ -43,7 +43,7 @@ loss_list, val_loss_list, val_iou_list = model.train(num_steps=16000,
              dropout_rate=0,
              lr=.001,
              decay=.9998,
-             checkpoint='/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/')
+             checkpoint='/home/sander/kaggle/tensorflow_implementation/models/')
 
 # Load weights
 model.load_weights('/home/sander/datascience/DSB2018/DSB2018/tensorflow_implementation/models/final.ckpt')
@@ -139,7 +139,6 @@ preds = get_preds(x_test)
 ###########################
 
 # Run-length encoding stolen from https://www.kaggle.com/rakhlin/fast-run-length-encoding-python
-
 preds = [opening(x) for x in preds]
 preds = [remove_small_holes(np.round(x).astype(np.uint8)) for x in preds]
 

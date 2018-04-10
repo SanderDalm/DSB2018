@@ -32,7 +32,7 @@ class NeuralNet(object):
 
         self.label = tf.placeholder(dtype=tf.float32, shape=[None, height, width, 1])
         self.boundaries = tf.placeholder(dtype=tf.float32, shape=[None, height, width, 1])
-        self.label = tf.subtract(self.label, tf.minimum(self.boundaries, 1))
+        #self.label = tf.subtract(self.label, tf.minimum(self.boundaries, 1))
 
         self.loss = tf.reduce_mean(tf.multiply(tf.nn.sigmoid_cross_entropy_with_logits(
                                     labels=self.label,
@@ -180,7 +180,7 @@ class NeuralNet(object):
                 print('')
                 val_iou_list.append(self.validate())
 
-            if step+1 % 1000 == 0 or step == num_steps-1:
+            if (step+1) % 1000 == 0 or step == num_steps-1:
                 self.saver.save(self.session, checkpoint + str(step) + '.ckpt')
                 print('Saved to {}'.format(checkpoint + str(step) + '.ckpt'))
 
